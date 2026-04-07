@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chronopost Integration — Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; padding: 24px; }
+
+  h1 { text-align: center; color: #1a365d; font-size: 22px; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #718096; font-size: 13px; margin-bottom: 28px; }
+
+  .main { display: flex; gap: 20px; align-items: flex-start; }
+
+  /* ── Columns ── */
+  .col { display: flex; flex-direction: column; gap: 0; }
+  .col-user  { width: 200px; }
+  .col-app   { width: 240px; }
+  .col-db    { width: 180px; }
+  .col-net   { width: 200px; }
+  .col-chron { width: 200px; }
+
+  .col-header {
+    text-align: center; padding: 8px 12px; border-radius: 8px 8px 0 0;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .h-user  { background: #2d3748; color: #fff; }
+  .h-app   { background: #2b6cb0; color: #fff; }
+  .h-db    { background: #276749; color: #fff; }
+  .h-net   { background: #6b46c1; color: #fff; }
+  .h-chron { background: #c05621; color: #fff; }
+
+  /* ── Phase groups ── */
+  .phase {
+    display: flex; align-items: stretch; gap: 0;
+    border-left: 3px solid transparent;
+    margin-bottom: 2px;
+  }
+  .phase-1 { border-color: #4299e1; }
+  .phase-2 { border-color: #48bb78; }
+  .phase-3 { border-color: #9f7aea; }
+  .phase-4 { border-color: #ed8936; }
+  .phase-5 { border-color: #fc8181; }
+  .phase-6 { border-color: #68d391; }
+
+  .phase-label {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 3px; color: #fff; min-width: 20px; text-align: center;
+    border-radius: 0 0 4px 4px;
+  }
+  .pl-1 { background: #4299e1; }
+  .pl-2 { background: #48bb78; }
+  .pl-3 { background: #9f7aea; }
+  .pl-4 { background: #ed8936; }
+  .pl-5 { background: #fc8181; }
+  .pl-6 { background: #68d391; }
+
+  .phase-inner { display: flex; gap: 0; flex: 1; }
+
+  /* ── Cells ── */
+  .cell {
+    padding: 8px 10px; border: 1px solid #e2e8f0;
+    background: #fff; font-size: 11.5px; color: #2d3748;
+    line-height: 1.4; min-height: 48px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    flex-direction: column; gap: 2px;
+  }
+  .cell-user  { width: 200px; background: #f7fafc; }
+  .cell-app   { width: 240px; background: #ebf8ff; }
+  .cell-db    { width: 180px; background: #f0fff4; }
+  .cell-net   { width: 200px; background: #faf5ff; }
+  .cell-chron { width: 200px; background: #fffaf0; }
+
+  .cell-empty { background: #fafafa; color: #ccc; border-color: #f0f0f0; }
+
+  .cell b { font-weight: 700; font-size: 12px; }
+  .cell small { font-size: 10px; color: #718096; }
+  .cell .tag {
+    display: inline-block; padding: 1px 6px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; margin-top: 2px;
+  }
+  .tag-blue   { background: #bee3f8; color: #2b6cb0; }
+  .tag-green  { background: #c6f6d5; color: #276749; }
+  .tag-purple { background: #e9d8fd; color: #6b46c1; }
+  .tag-orange { background: #feebc8; color: #c05621; }
+  .tag-red    { background: #fed7d7; color: #9b2c2c; }
+
+  /* ── Arrows ── */
+  .arrow-row {
+    display: flex; align-items: center; height: 20px;
+    font-size: 10px; color: #a0aec0; gap: 0;
+  }
+  .arr-cell { display: flex; align-items: center; justify-content: center; }
+  .arr-down { font-size: 14px; color: #cbd5e0; }
+  .arr-right { font-size: 16px; color: #4299e1; }
+  .arr-left  { font-size: 16px; color: #9f7aea; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; margin: 24px 0 16px; flex-wrap: wrap;
+  }
+  .status-node {
+    padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    color: #fff; white-space: nowrap;
+  }
+  .status-arrow { font-size: 18px; color: #cbd5e0; margin: 0 4px; }
+  .s1 { background: #718096; }
+  .s2 { background: #4299e1; }
+  .s3 { background: #9f7aea; }
+  .s4 { background: #ed8936; }
+  .s5 { background: #ecc94b; color: #744210; }
+  .s6 { background: #48bb78; }
+  .s7 { background: #fc8181; color: #fff; }
+  .s8 { background: #f6ad55; color: #7b341e; }
+
+  /* ── Legend ── */
+  .legend { display: flex; gap: 16px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap-6px; font-size: 11px; color: #4a5568; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }
+
+  .note {
+    background: #fffde7; border: 1px solid #f6e05e; border-radius: 8px;
+    padding: 10px 14px; font-size: 11px; color: #744210;
+    margin-top: 16px; text-align: center; max-width: 900px; margin-left: auto; margin-right: auto;
+  }
+
+  .connector {
+    border-top: 2px dashed #cbd5e0; flex: 1; height: 0; margin: 0 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>📦 Chronopost Integration — Complete Flow</h1>
+<p class="subtitle">KBT Express (Bangladesh) → Chronopost (France) → Customer (Europe)</p>
+
+<!-- Status Flow -->
+<div class="status-bar">
+  <div class="status-node s1">CREATED</div>
+  <span class="status-arrow">→</span>
+  <div class="status-node s2">LABEL_READY</div>
+  <span class="status-arrow">→</span>
+  <div class="status-node s3">PREALERT_SENT</div>
+  <span class="status-arrow">→</span>
+  <div class="status-node s4">INVOICE_SENT</div>
+  <span class="status-arrow">→</span>
+  <div class="status-node s5">IN_TRANSIT</div>
+  <span class="status-arrow">→</span>
+  <div class="status-node s6">DELIVERED ✓</div>
+  <span class="status-arrow" style="color:#fc8181">→</span>
+  <div class="status-node s7">FAILED ✗</div>
+  <span class="status-arrow" style="color:#f6ad55">→</span>
+  <div class="status-node s8">RETURNED ↩</div>
+</div>
+
+<!-- Column headers -->
+<div style="display:flex; gap:0; margin-left:20px; margin-bottom:0;">
+  <div style="width:200px;"></div><!-- phase label placeholder -->
+  <div class="col-header h-user"  style="width:200px;">👤 Operator</div>
+  <div class="col-header h-app"   style="width:240px;">⚙️ Spring Boot App</div>
+  <div class="col-header h-db"    style="width:180px;">🗄️ Oracle DB</div>
+  <div class="col-header h-net"   style="width:200px;">🌐 Network</div>
+  <div class="col-header h-chron" style="width:200px;">🚚 Chronopost (FR)</div>
+</div>
+
+<!-- PHASE 1: Create Shipment -->
+<div class="phase phase-1">
+  <div class="phase-label pl-1">①&nbsp;Create</div>
+  <div class="phase-inner">
+    <div class="cell cell-user">
+      <b>New Shipment</b>
+      <small>5-step wizard</small>
+      <span class="tag tag-blue">Click</span>
+    </div>
+    <div class="cell cell-app">
+      <b>POST /shipment/create</b>
+      <small>Sender · Receiver · Parcel</small>
+      <small>Customs · Invoice Lines</small>
+    </div>
+    <div class="cell cell-db">
+      <b>6 tables INSERT</b>
+      <small>SHIPMENTS · SENDERS</small>
+      <small>RECEIVERS · PARCELS</small>
+      <small>CUSTOMS · INVOICE_LINES</small>
+    </div>
+    <div class="cell cell-net cell-empty">—</div>
+    <div class="cell cell-chron cell-empty">—</div>
+  </div>
+</div>
+
+<!-- PHASE 2: Label -->
+<div class="phase phase-2">
+  <div class="phase-label pl-2">②&nbsp;Label</div>
+  <div class="phase-inner">
+    <div class="cell cell-user">
+      <b>Generate Label</b>
+      <small>Select parcel</small>
+      <span class="tag tag-green">Click</span>
+    </div>
+    <div class="cell cell-app">
+      <b>POST /label/generate</b>
+      <small>① Weight → CHR_PRODUCTS → code 327/328</small>
+      <small>② ParcelID: HY712+000001+JF</small>
+      <small>③ CHR_ROUTING lookup → origSort</small>
+      <small>④ ZIP normalize (GB/IE/NL/PT)</small>
+      <small>⑤ Routing barcode build</small>
+      <small>⑥ iText PDF → 5 zones</small>
+    </div>
+    <div class="cell cell-db">
+      <b>3 tables</b>
+      <small>PRODUCTS (read)</small>
+      <small>ROUTING (read)</small>
+      <small>PARCEL_COUNTER (update)</small>
+      <small>PARCELS (update)</small>
+    </div>
+    <div class="cell cell-net cell-empty">—</div>
+    <div class="cell cell-chron cell-empty">—</div>
+  </div>
+</div>
+
+<!-- PHASE 3: Pre-Alert -->
+<div class="phase phase-3">
+  <div class="phase-label pl-3">③&nbsp;PreAlert</div>
+  <div class="phase-inner">
+    <div class="cell cell-user">
+      <b>Send Pre-Alert</b>
+      <small>Before parcel departs</small>
+      <span class="tag tag-purple">Click</span>
+    </div>
+    <div class="cell cell-app">
+      <b>POST /prealert/send/{id}</b>
+      <small>① Validate all fields</small>
+      <small>② Build GEODATA CONSO file</small>
+      <small>③ #DEF · VERSION 3.32</small>
+      <small>④ MPSWEIGHT in decagram</small>
+      <small>⑤ SFTP connect → /IN upload</small>
+    </div>
+    <div class="cell cell-db">
+      <b>PREALERT_FILES</b>
+      <small>fileName, fileContent</small>
+      <small>ftpStatus=SENT</small>
+      <small>SHIPMENTS status update</small>
+    </div>
+    <div class="cell cell-net" style="background:#faf5ff;">
+      <b style="color:#6b46c1">SFTP Push ↑</b>
+      <small>port 22 · key auth</small>
+      <small>GEODATA_CONSO_...</small>
+      <small>→ /IN folder</small>
+    </div>
+    <div class="cell cell-chron">
+      <b>Receive GEODATA</b>
+      <small>Validate file</small>
+      <small>Parse shipment data</small>
+      <span class="tag tag-orange">OK ✓</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 4: Invoice -->
+<div class="phase phase-4">
+  <div class="phase-label pl-4">④&nbsp;Invoice</div>
+  <div class="phase-inner">
+    <div class="cell cell-user">
+      <b>Generate + Upload</b>
+      <small>Invoice page</small>
+      <span class="tag tag-orange">Click</span>
+    </div>
+    <div class="cell cell-app">
+      <b>GET /invoice/generate/{id}</b>
+      <small>① DB → Sender+Receiver+Items</small>
+      <small>② iText PDF (professional)</small>
+      <small>③ POST /invoice/upload</small>
+      <small>④ Validate ≥300 DPI</small>
+      <small>⑤ SFTP → /IN upload</small>
+    </div>
+    <div class="cell cell-db">
+      <b>INVOICE_FILES</b>
+      <small>INV_EXP_account_parcelId.PDF</small>
+      <small>ftpStatus=SENT</small>
+      <small>SHIPMENTS status update</small>
+    </div>
+    <div class="cell cell-net" style="background:#faf5ff;">
+      <b style="color:#6b46c1">SFTP Push ↑</b>
+      <small>INV_EXP_14576904_</small>
+      <small>HY712000001JF.PDF</small>
+      <small>→ /IN folder</small>
+    </div>
+    <div class="cell cell-chron">
+      <b>Receive Invoice</b>
+      <small>Customs clearance</small>
+      <small>Belgium customs</small>
+      <span class="tag tag-orange">Cleared ✓</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 5: Physical -->
+<div class="phase phase-5">
+  <div class="phase-label pl-5">✈️&nbsp;Transit</div>
+  <div class="phase-inner">
+    <div class="cell cell-user cell-empty">Waiting...</div>
+    <div class="cell cell-app cell-empty">
+      <small style="color:#718096">Tracking Scheduler</small>
+      <small style="color:#718096">runs every 30 min</small>
+    </div>
+    <div class="cell cell-db cell-empty">—</div>
+    <div class="cell cell-net" style="background:#fff5f5;">
+      <b style="color:#c53030">Physical Journey</b>
+      <small>Dhaka → Dubai → Brussels</small>
+      <small>Chronopost places</small>
+      <small>EDIPOD file on FTP</small>
+    </div>
+    <div class="cell cell-chron">
+      <b>Scan Events</b>
+      <small>SM → Scanned</small>
+      <small>TI → Hub arrived</small>
+      <small>TA → Out for delivery</small>
+      <small>D → Delivered</small>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 6: Tracking Pull -->
+<div class="phase phase-6">
+  <div class="phase-label pl-6">⑥&nbsp;Track</div>
+  <div class="phase-inner">
+    <div class="cell cell-user">
+      <b>Tracking Page</b>
+      <small>View timeline</small>
+      <small>Search by parcel</small>
+    </div>
+    <div class="cell cell-app">
+      <b>POST /tracking/poll</b>
+      <small>① FTP connect every 30 min</small>
+      <small>② Check /OUT for EDIPOD files</small>
+      <small>③ Download new files</small>
+      <small>④ Parse 51 fields per line</small>
+      <small>⑤ Map 133 event codes</small>
+      <small>⑥ Update shipment status</small>
+    </div>
+    <div class="cell cell-db">
+      <b>TRACKING_EVENTS</b>
+      <small>eventCode · date · time</small>
+      <small>location · reason</small>
+      <small>pickupPudoCode</small>
+      <small>SHIPMENTS → DELIVERED</small>
+    </div>
+    <div class="cell cell-net" style="background:#faf5ff;">
+      <b style="color:#6b46c1">FTP Pull ↓</b>
+      <small>App goes to Chronopost</small>
+      <small>Downloads EDIPOD file</small>
+      <small>from /OUT folder</small>
+      <small style="color:#e53e3e">⚠ Chronopost does NOT push</small>
+    </div>
+    <div class="cell cell-chron">
+      <b>FTP /OUT folder</b>
+      <small>EDIPOD_HY712..._001.txt</small>
+      <small>Waiting to be pulled</small>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom notes -->
+<div class="note">
+  ⚠️ <b>Critical before go-live:</b>
+  SDEPOT · SYSDEPOT · HARDWARE values must be confirmed with Chronopost technical team ·
+  Real SFTP credentials needed ·
+  Run UAT in TEST mode first (SFTP /TEST folder)
+</div>
+
+<!-- Legend -->
+<div class="legend" style="margin-top:16px;">
+  <div class="legend-item"><div class="legend-dot" style="background:#4299e1;"></div>SFTP Push (App → Chronopost /IN)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9f7aea;"></div>FTP Pull (App ← Chronopost /OUT)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#48bb78;"></div>DB Read/Write (Oracle 11g)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ed8936;"></div>Manual user action</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#718096;"></div>Auto (Scheduler 30 min)</div>
+</div>
+
+</body>
+</html>
